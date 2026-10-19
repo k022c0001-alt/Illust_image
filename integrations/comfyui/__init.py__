@@ -1,0 +1,100 @@
+# integrations/comfyui/__init__.py
+
+from integrations.comfyui.comfyui_client import (
+    ComfyUIClient,
+    ComfyUIError,
+)
+from integrations.comfyui.workflow_registry import (
+    WorkflowRegistry,
+)
+from integrations.comfyui.workflow_builder import (
+    WorkflowBuilder,
+)
+from integrations.comfyui.comfyui_image_provider import (
+    ComfyUIImageProvider,
+)
+
+
+def create_comfyui_provider(
+    base_url: str = "http://127.0.0.1:8188",
+    output_directory: str = "storage/generated",
+) -> ComfyUIImageProvider:
+    """
+    ComfyUIプロバイダーを初期化する。
+
+    ワークフローJSONのファイル名やノードIDは、
+    実際に利用するComfyUIワークフローに合わせて登録する。
+    """
+    registry = WorkflowRegistry()
+
+    # 以下の node_id と入力名は、実際のワークフローに
+    # 合わせて変更すること。
+    registry.register(
+        "txt2img",
+        {
+            "workflow_file": "txt2img.json",
+            "node_map": {
+                "checkpoint": {
+                    "node_id": "4",
+                    "inputs": {
+                        "ckpt_name": "checkpoint",
+                    },
+                },
+                "positive_prompt": {
+                    "node_id": "6",
+                    "inputs": {
+                        "text": "prompt",
+                    },
+                },
+                "negative_prompt": {
+                    "node_id": "7",
+                    "inputs": {
+                        "text": "negative_prompt",
+                    },
+                },
+                "sampler": {
+                    "node_id": "3",
+                    "inputs": {
+                        "seed": "seed",
+                        "steps": "steps",
+                        "cfg": "cfg",
+                    },
+                },
+                "latent": {
+                    "node_id": "5",
+                    "inputs": {
+                        "width": "width",
+                        "height": "height",
+                    },
+                },
+            },
+        },
+    )
+
+    # img2img と inpaint は、実際のワークフローの
+    # ノードID・入力名を確認してから登録する。
+    #
+    # txt2imgの設定をコピーするだけでは、
+    # 元画像やマスクが正しく接続されないため注意。
+
+    client = ComfyUIClient(
+        base_url=base_url,
+        output_directory=output_directory,
+    )
+
+    builder = WorkflowBuilder(registry)
+
+    return ComfyUIImageProvider(
+        client=client,
+        workflow_builder=builder,
+    )
+
+
+__all__ = [
+    "ComfyUIClient",
+    "ComfyUIError",
+    "WorkflowRegistry",
+    "WorkflowBuilder",
+    "ComfyUIImageProvider",
+    "create_comfyui_provider",
+]
